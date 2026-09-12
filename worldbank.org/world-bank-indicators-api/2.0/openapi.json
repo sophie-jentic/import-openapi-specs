@@ -1,0 +1,340 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "World Bank Indicators API",
+    "version": "2.0",
+    "description": "The World Bank Indicators API provides open access to the World Bank's global development and macroeconomic statistics — over 29,000 time-series indicators (GDP, inflation, unemployment, government debt, trade, population, and more) for every country and aggregate region. Data is annual and historical. No authentication is required.\n\nResponse shape: every endpoint returns a JSON array of exactly two elements. Element [0] is a pagination metadata object ({page, pages, per_page, total, sourceid, lastupdated}); element [1] is the array of data rows. Always pass `format=json` (the API defaults to XML otherwise).",
+    "x-jentic-source-url": "https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation"
+  },
+  "servers": [
+    {
+      "url": "https://api.worldbank.org/v2"
+    }
+  ],
+  "tags": [
+    { "name": "Indicators", "description": "Indicator definitions and per-country indicator time series" },
+    { "name": "Countries", "description": "Country and region reference data" }
+  ],
+  "paths": {
+    "/country/{countryCode}/indicator/{indicator}": {
+      "get": {
+        "operationId": "getCountryIndicator",
+        "summary": "Get an indicator time series for one or more countries",
+        "description": "Returns the annual historical time series for the given indicator and country. `countryCode` accepts a single ISO2/ISO3 code (e.g. FR / FRA), a semicolon-separated list (e.g. FR;DE;IT), or 'all'. This is the primary data endpoint.",
+        "tags": ["Indicators"],
+        "parameters": [
+          {
+            "name": "countryCode",
+            "in": "path",
+            "required": true,
+            "description": "ISO2 or ISO3 country code, a semicolon-separated list of codes, or 'all'. Example: FR, FRA, or FR;DE;IT.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "indicator",
+            "in": "path",
+            "required": true,
+            "description": "World Bank indicator code. Example: NY.GDP.MKTP.CD (GDP, current US$), FP.CPI.TOTL.ZG (inflation, consumer prices, annual %).",
+            "schema": { "type": "string" }
+          },
+          { "$ref": "#/components/parameters/format" },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "description": "Filter by year or a year range using a colon. Example: 2020 or 2010:2025.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "description": "Numeric source database id (e.g. 2 = World Development Indicators). Use when an indicator exists in multiple sources.",
+            "schema": { "type": "integer" }
+          },
+          { "$ref": "#/components/parameters/per_page" },
+          { "$ref": "#/components/parameters/page" }
+        ],
+        "responses": {
+          "200": {
+            "description": "A two-element array: [pagination metadata, array of observation rows].",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IndicatorDataResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (invalid parameter). Note: the World Bank API frequently returns HTTP 200 with an error object in element [0] rather than a 4xx status.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized (not applicable — this API requires no authentication).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/country": {
+      "get": {
+        "operationId": "listCountries",
+        "summary": "List all countries and aggregate regions",
+        "description": "Returns the full list of countries and regional/income aggregates with metadata (region, income level, capital, coordinates).",
+        "tags": ["Countries"],
+        "parameters": [
+          { "$ref": "#/components/parameters/format" },
+          { "$ref": "#/components/parameters/per_page" },
+          { "$ref": "#/components/parameters/page" }
+        ],
+        "responses": {
+          "200": {
+            "description": "A two-element array: [pagination metadata, array of country rows].",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CountryListResponse" } } }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized (not applicable)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/country/{countryCode}": {
+      "get": {
+        "operationId": "getCountry",
+        "summary": "Get metadata for a specific country",
+        "description": "Returns metadata for a single country or a semicolon-separated list: region, income level, lending type, capital city, and coordinates.",
+        "tags": ["Countries"],
+        "parameters": [
+          {
+            "name": "countryCode",
+            "in": "path",
+            "required": true,
+            "description": "ISO2 or ISO3 country code, or a semicolon-separated list. Example: FR or FRA.",
+            "schema": { "type": "string" }
+          },
+          { "$ref": "#/components/parameters/format" },
+          { "$ref": "#/components/parameters/per_page" },
+          { "$ref": "#/components/parameters/page" }
+        ],
+        "responses": {
+          "200": {
+            "description": "A two-element array: [pagination metadata, array of country rows].",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CountryListResponse" } } }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized (not applicable)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/indicator": {
+      "get": {
+        "operationId": "listIndicators",
+        "summary": "List all available indicators",
+        "description": "Returns the catalog of all World Bank indicators (~29,000+). Each entry includes the indicator code, name, unit, source, and a source note describing the metric. Use per_page/page to page through the large catalog.",
+        "tags": ["Indicators"],
+        "parameters": [
+          { "$ref": "#/components/parameters/format" },
+          { "$ref": "#/components/parameters/per_page" },
+          { "$ref": "#/components/parameters/page" },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "description": "Restrict to indicators from a specific numeric source database id.",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A two-element array: [pagination metadata, array of indicator definitions].",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/IndicatorListResponse" } } }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized (not applicable)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/indicator/{indicator}": {
+      "get": {
+        "operationId": "getIndicator",
+        "summary": "Get the definition of a specific indicator",
+        "description": "Returns the definition of a single indicator: code, name, unit, source, source note, and source organization.",
+        "tags": ["Indicators"],
+        "parameters": [
+          {
+            "name": "indicator",
+            "in": "path",
+            "required": true,
+            "description": "World Bank indicator code. Example: FP.CPI.TOTL.ZG.",
+            "schema": { "type": "string" }
+          },
+          { "$ref": "#/components/parameters/format" }
+        ],
+        "responses": {
+          "200": {
+            "description": "A two-element array: [pagination metadata, array with the indicator definition].",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/IndicatorListResponse" } } }
+          },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Unauthorized (not applicable)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "format": {
+        "name": "format",
+        "in": "query",
+        "required": false,
+        "description": "Response format. Pass 'json' — the API defaults to XML if omitted.",
+        "schema": { "type": "string", "enum": ["json", "xml", "jsonstat"], "default": "json" }
+      },
+      "per_page": {
+        "name": "per_page",
+        "in": "query",
+        "required": false,
+        "description": "Number of results per page.",
+        "schema": { "type": "integer", "default": 50, "maximum": 32500 }
+      },
+      "page": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "Page number (1-based).",
+        "schema": { "type": "integer", "default": 1 }
+      }
+    },
+    "schemas": {
+      "PaginationMeta": {
+        "type": "object",
+        "description": "Element [0] of every response: pagination and source metadata.",
+        "properties": {
+          "page": { "type": "integer", "description": "Current page number." },
+          "pages": { "type": "integer", "description": "Total number of pages." },
+          "per_page": { "type": "integer", "description": "Results per page." },
+          "total": { "type": "integer", "description": "Total number of matching rows." },
+          "sourceid": { "type": "string", "description": "Numeric id of the source database." },
+          "lastupdated": { "type": "string", "description": "Date the source data was last updated (YYYY-MM-DD)." }
+        }
+      },
+      "CodeValue": {
+        "type": "object",
+        "description": "A reusable {id, value} pair used for indicator and country references.",
+        "properties": {
+          "id": { "type": "string" },
+          "value": { "type": "string" }
+        }
+      },
+      "Observation": {
+        "type": "object",
+        "description": "A single indicator observation row for a country and year.",
+        "properties": {
+          "indicator": { "$ref": "#/components/schemas/CodeValue" },
+          "country": { "$ref": "#/components/schemas/CodeValue" },
+          "countryiso3code": { "type": "string", "description": "ISO3 country code, e.g. FRA." },
+          "date": { "type": "string", "description": "Observation year, e.g. '2025'." },
+          "value": { "type": "number", "nullable": true, "description": "The observed value; null when unavailable." },
+          "unit": { "type": "string" },
+          "obs_status": { "type": "string" },
+          "decimal": { "type": "integer" }
+        }
+      },
+      "Country": {
+        "type": "object",
+        "description": "A country or aggregate region record.",
+        "properties": {
+          "id": { "type": "string", "description": "ISO3 code, e.g. FRA." },
+          "iso2Code": { "type": "string", "description": "ISO2 code, e.g. FR." },
+          "name": { "type": "string" },
+          "region": { "$ref": "#/components/schemas/CodeValueRegion" },
+          "adminregion": { "$ref": "#/components/schemas/CodeValueRegion" },
+          "incomeLevel": { "$ref": "#/components/schemas/CodeValueRegion" },
+          "lendingType": { "$ref": "#/components/schemas/CodeValueRegion" },
+          "capitalCity": { "type": "string" },
+          "longitude": { "type": "string" },
+          "latitude": { "type": "string" }
+        }
+      },
+      "CodeValueRegion": {
+        "type": "object",
+        "description": "A {id, iso2code, value} classification reference (region, income level, lending type).",
+        "properties": {
+          "id": { "type": "string" },
+          "iso2code": { "type": "string" },
+          "value": { "type": "string" }
+        }
+      },
+      "IndicatorDefinition": {
+        "type": "object",
+        "description": "An indicator's catalog definition.",
+        "properties": {
+          "id": { "type": "string", "description": "Indicator code, e.g. FP.CPI.TOTL.ZG." },
+          "name": { "type": "string" },
+          "unit": { "type": "string" },
+          "source": { "$ref": "#/components/schemas/CodeValue" },
+          "sourceNote": { "type": "string" },
+          "sourceOrganization": { "type": "string" },
+          "topics": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CodeValue" }
+          }
+        }
+      },
+      "IndicatorDataResponse": {
+        "type": "array",
+        "description": "Two-element array: [PaginationMeta, array of Observation rows].",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": {
+          "oneOf": [
+            { "$ref": "#/components/schemas/PaginationMeta" },
+            { "type": "array", "items": { "$ref": "#/components/schemas/Observation" } }
+          ]
+        }
+      },
+      "CountryListResponse": {
+        "type": "array",
+        "description": "Two-element array: [PaginationMeta, array of Country rows].",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": {
+          "oneOf": [
+            { "$ref": "#/components/schemas/PaginationMeta" },
+            { "type": "array", "items": { "$ref": "#/components/schemas/Country" } }
+          ]
+        }
+      },
+      "IndicatorListResponse": {
+        "type": "array",
+        "description": "Two-element array: [PaginationMeta, array of IndicatorDefinition rows].",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": {
+          "oneOf": [
+            { "$ref": "#/components/schemas/PaginationMeta" },
+            { "type": "array", "items": { "$ref": "#/components/schemas/IndicatorDefinition" } }
+          ]
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "World Bank error payload. Note the API often returns this inside element [0] of a 200 response rather than with a 4xx status.",
+        "properties": {
+          "message": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "key": { "type": "string" },
+                "value": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {}
+  ]
+}
