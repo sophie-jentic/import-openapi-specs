@@ -1,0 +1,93 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Societe Generale Prime Services Indices Feed",
+    "version": "1.0.0",
+    "description": "Public data feed for Societe Generale's systematic-strategy (CTA / managed-futures) benchmark indices, as published behind SG's Trend Indicator screen widget. Returns the full daily NAV history (from 2000-01-01, updated T+1) for the SG Trend Indicator, SG CTA Index, and SG Trend Index, alongside the S&P 500 Total Return benchmark.\n\nThe response is a CSV document (served as application/octet-stream) with the header row `trade_date,SG Trend Indicator,SG CTA Index,SG Trend Index,S&P 500 TR` and one row per trading day. No authentication is required.\n\nTicker mapping commonly used by clients: SG_CTA = 'SG CTA Index' (Bloomberg NEIXCTA), SG_TREND = 'SG Trend Index' (Bloomberg NEIXCTAT). This is an undocumented fileadmin asset backing SG's public chart widget, not a formally published API — treat as a research feed, not a licensed production source.",
+    "x-jentic-source-url": "https://wholesale.banking.societegenerale.com/en/prime-services-indices/"
+  },
+  "servers": [
+    {
+      "url": "https://wholesale.banking.societegenerale.com"
+    }
+  ],
+  "tags": [
+    { "name": "Indices", "description": "Societe Generale systematic-strategy index NAV feeds" }
+  ],
+  "paths": {
+    "/fileadmin/indices_feeds/ti_screen/data/4.nav.csv": {
+      "get": {
+        "operationId": "getSgTrendIndicatorNavHistory",
+        "summary": "Get the SG CTA / SG Trend index NAV history (CSV)",
+        "description": "Returns the full daily NAV history CSV for the SG Trend Indicator, SG CTA Index (SG_CTA, Bloomberg NEIXCTA), and SG Trend Index (SG_TREND, Bloomberg NEIXCTAT), plus the S&P 500 Total Return benchmark. First column is `trade_date` (YYYY-MM-DD). Data starts 2000-01-01 and is updated T+1 (published ~2pm US Eastern). The most recent trading day may have blank index cells until that day's NAV is finalised.",
+        "tags": ["Indices"],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Optional cache-buster value (any string; typically a random number). The feed returns the same data with or without it; use a fresh value to bypass any intermediate cache.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV document of daily index NAVs. Header: `trade_date,SG Trend Indicator,SG CTA Index,SG Trend Index,S&P 500 TR`.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary",
+                  "description": "CSV text. One header row followed by one row per trading day: trade_date,SG Trend Indicator,SG CTA Index,SG Trend Index,S&P 500 TR."
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV text. One header row followed by one row per trading day: trade_date,SG Trend Indicator,SG CTA Index,SG Trend Index,S&P 500 TR."
+                }
+              }
+            }
+          },
+          "301": {
+            "description": "Moved permanently. Returned for sibling paths (e.g. a trailing slash); the canonical resource is this exact path with no trailing slash."
+          },
+          "404": {
+            "description": "Not found. Returned when the feed path is incorrect or the asset has been relocated by SG.",
+            "content": {
+              "text/html": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "IndexNavRow": {
+        "type": "object",
+        "description": "Logical shape of a single parsed CSV row (the feed itself is CSV, not JSON). Index columns may be empty on the latest, not-yet-finalised trading day.",
+        "properties": {
+          "trade_date": { "type": "string", "format": "date", "description": "Trading day, YYYY-MM-DD." },
+          "SG Trend Indicator": { "type": "number", "nullable": true, "description": "SG Trend Indicator NAV (base 100 at 2000-01-01)." },
+          "SG CTA Index": { "type": "number", "nullable": true, "description": "SG CTA Index NAV (SG_CTA, Bloomberg NEIXCTA)." },
+          "SG Trend Index": { "type": "number", "nullable": true, "description": "SG Trend Index NAV (SG_TREND, Bloomberg NEIXCTAT)." },
+          "S&P 500 TR": { "type": "number", "nullable": true, "description": "S&P 500 Total Return benchmark NAV." }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "Non-CSV error payload (typically an HTML error page from the web server rather than a structured body).",
+        "properties": {
+          "status": { "type": "integer", "description": "HTTP status code." },
+          "message": { "type": "string", "description": "Error description." }
+        }
+      }
+    }
+  },
+  "security": [
+    {}
+  ]
+}
